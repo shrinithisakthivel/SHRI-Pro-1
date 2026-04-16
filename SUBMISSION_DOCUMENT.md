@@ -1095,7 +1095,7 @@ const Login = () => {
       localStorage.setItem('user', JSON.stringify(userData));
       navigate('/');
     } else {
-      setError("Invalid password. Use shri123");
+      setError("Wrong password");
     }
   };
 

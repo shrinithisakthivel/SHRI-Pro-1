@@ -1,5 +1,5 @@
 /**
- * Shared Constants
+ * Application Constants
  * Centralized configuration for ward types, rates, and doctors.
  */
 
