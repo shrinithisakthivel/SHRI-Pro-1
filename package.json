@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "start": "tsx server.ts",
+    "prebuild": "node -e \"console.log('List of files in src:', require('fs').readdirSync('src'))\"",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
