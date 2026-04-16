@@ -1,0 +1,5 @@
+{
+  "name": "Hospital Bed Capacity Management System",
+  "description": "A comprehensive system for tracking hospital bed availability, managing patient admissions, and monitoring real-time capacity dashboard.",
+  "requestFramePermissions": []
+}
