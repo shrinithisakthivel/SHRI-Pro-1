@@ -934,6 +934,22 @@ const Admission = () => {
                 </div>
               </div>
 
+              {/* Blood Group */}
+              <div className="space-y-2">
+                <label className="text-base font-bold text-slate-700">Blood Group</label>
+                <select
+                  value={formData.bloodGroup}
+                  onChange={e => setFormData({ ...formData, bloodGroup: e.target.value })}
+                  className="w-full px-5 py-4 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-emerald-500 transition-all font-semibold text-lg appearance-none"
+                  required
+                >
+                  <option value="">Select Blood Group</option>
+                  {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(group => (
+                    <option key={group} value={group}>{group}</option>
+                  ))}
+                </select>
+              </div>
+
               {/* Nationality & Admission Date */}
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">

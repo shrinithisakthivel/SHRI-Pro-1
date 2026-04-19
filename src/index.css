@@ -11,10 +11,6 @@
   body {
     @apply bg-slate-50 text-slate-900 antialiased;
   }
-}
-
-/* Base Styles & Global Selection */
-@layer base {
   ::selection {
     @apply bg-emerald-100 text-emerald-900;
   }
