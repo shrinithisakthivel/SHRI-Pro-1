@@ -1859,7 +1859,12 @@ const PatientHistory = () => {
                 <td className="px-6 py-4">
                   <div>
                     <p className="font-bold text-slate-900">{record.name}</p>
-                    <p className="text-xs text-slate-500">{record.age} yrs • {record.gender} • {record.nationality}</p>
+                    <p className="text-xs text-slate-500">
+                      {record.age} yrs • {record.gender} • {record.nationality} 
+                      <span className="ml-2 px-1.5 py-0.5 bg-rose-50 text-rose-600 rounded-md font-bold text-[10px]">
+                        Blood: {record.blood_group}
+                      </span>
+                    </p>
                   </div>
                 </td>
                 <td className="px-6 py-4">
