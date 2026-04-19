@@ -1,1 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Outfit:wght@100..900&display=swap');
 @import "tailwindcss";
+
+/* Import Modern Typography */
+
+@theme {
+  --font-sans: "Inter", "Outfit", system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+  ::selection {
+    @apply bg-emerald-100 text-emerald-900;
+  }
+}
+
+/* Custom Utilities using V4 @utility directive */
+@utility glass {
+  @apply bg-white/70 backdrop-blur-md border border-white/20;
+}
+
+/* Custom Scrollbar System */
+@layer base {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+  }
+}
+
+/* Animation System */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@utility animate-float {
+  animation: float 4s ease-in-out infinite;
+}
