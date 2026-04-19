@@ -33,7 +33,8 @@ import {
   ArrowRight,
   ArrowUpRight,
   Zap,
-  ChevronDown
+  ChevronDown,
+  Droplets
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
@@ -821,7 +822,7 @@ const Admission = () => {
     reason: '',
     expectedDays: '',
     amountPaid: '',
-    admissionDate: new Date().toISOString().split('T')[0]
+    admissionDate: new Date().toISOString().slice(0, 16) // datetime-local format
   });
 
   const getRate = (type: string) => {
@@ -937,17 +938,20 @@ const Admission = () => {
               {/* Blood Group */}
               <div className="space-y-2">
                 <label className="text-base font-bold text-slate-700">Blood Group</label>
-                <select
-                  value={formData.bloodGroup}
-                  onChange={e => setFormData({ ...formData, bloodGroup: e.target.value })}
-                  className="w-full px-5 py-4 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-emerald-500 transition-all font-semibold text-lg appearance-none"
-                  required
-                >
-                  <option value="">Select Blood Group</option>
-                  {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(group => (
-                    <option key={group} value={group}>{group}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <Droplets className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-500" size={20} />
+                  <select
+                    value={formData.bloodGroup}
+                    onChange={e => setFormData({ ...formData, bloodGroup: e.target.value })}
+                    className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-emerald-500 transition-all font-semibold text-lg appearance-none cursor-pointer"
+                    required
+                  >
+                    <option value="">Select Blood Group</option>
+                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(group => (
+                      <option key={group} value={group}>{group}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Nationality & Admission Date */}
@@ -964,7 +968,7 @@ const Admission = () => {
                 <div className="space-y-2">
                   <label className="text-base font-bold text-slate-700">Admission Date</label>
                   <input
-                    type="date"
+                    type="datetime-local"
                     value={formData.admissionDate}
                     onChange={e => setFormData({ ...formData, admissionDate: e.target.value })}
                     className="w-full px-5 py-4 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-emerald-500 transition-all font-semibold text-lg"
@@ -1314,7 +1318,14 @@ const PatientList = () => {
                 <td className="px-6 py-4">
                   <div className="flex flex-col gap-1">
                     <span className="px-2 py-1 bg-rose-50 text-rose-700 rounded text-[10px] font-bold w-fit">Blood: {patient.blood_group}</span>
-                    {calculateDays(patient.admission_date, 0) > patient.expected_days && (
+                    {/* Hour-precise overstay check */}
+                    {(() => {
+                      const admission = new Date(patient.admission_date).getTime();
+                      const now = new Date().getTime();
+                      const hoursElapsed = (now - admission) / (1000 * 60 * 60);
+                      const allowedHours = (patient.expected_days || 1) * 24;
+                      return hoursElapsed > allowedHours;
+                    })() && (
                       <span className="px-2 py-1 bg-rose-600 text-white rounded text-[10px] font-black w-fit animate-pulse flex items-center gap-1">
                         <AlertCircle size={10} /> STAY EXCEEDED
                       </span>
@@ -1322,9 +1333,15 @@ const PatientList = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex items-center gap-2 text-base text-slate-600 font-bold">
-                    <Calendar size={14} />
-                    {new Date(patient.admission_date).toLocaleDateString()}
+                  <div className="flex flex-col text-slate-600 font-bold">
+                    <div className="flex items-center gap-2 text-base">
+                      <Calendar size={14} />
+                      {new Date(patient.admission_date).toLocaleDateString()}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                      <Clock size={12} />
+                      {new Date(patient.admission_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
                   </div>
                 </td>
                 <td className="px-6 py-4">
