@@ -1,15 +1,15 @@
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, Navigate, useSearchParams, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  BedDouble, 
-  UserPlus, 
-  Users, 
-  LogOut, 
-  Search, 
-  Plus, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  LayoutDashboard,
+  BedDouble,
+  UserPlus,
+  Users,
+  LogOut,
+  Search,
+  Plus,
+  CheckCircle2,
+  XCircle,
   X,
   Clock,
   Activity,
@@ -30,7 +30,10 @@ import {
   History as HistoryIcon,
   ChevronRight,
   TrendingUp,
-  ArrowRight
+  ArrowRight,
+  ArrowUpRight,
+  Zap,
+  ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
@@ -85,10 +88,10 @@ const ToastContainer = ({ toasts, removeToast }: { toasts: Toast[], removeToast:
             {toast.type === 'error' && <XCircle className="text-rose-500 shrink-0" size={20} />}
             {toast.type === 'warning' && <AlertCircle className="text-amber-500 shrink-0" size={20} />}
             {toast.type === 'info' && <Info className="text-blue-500 shrink-0" size={20} />}
-            
+
             <p className="text-sm font-medium flex-1">{toast.message}</p>
-            
-            <button 
+
+            <button
               onClick={() => removeToast(toast.id)}
               className="p-1 hover:bg-black/5 rounded-lg transition-colors shrink-0"
             >
@@ -148,34 +151,44 @@ const calculateTotalBill = (patient: Patient) => {
  */
 const Sidebar = () => {
   const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-    { icon: BedDouble, label: 'Bed Management', path: '/beds' },
-    { icon: UserPlus, label: 'Admission', path: '/admission' },
-    { icon: Users, label: 'Patients', path: '/patients' },
-    { icon: Clock, label: 'History', path: '/history' },
-    { icon: Shield, label: 'Pending Payments', path: '/pending-payments' },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: BedDouble, label: 'Bed Management', path: '/beds', color: 'slate' },
+    { icon: UserPlus, label: 'Admission', path: '/admission', color: 'emerald' },
+    { icon: Users, label: 'Patients', path: '/patients', color: 'blue' },
+    { icon: AlertCircle, label: 'Stay Duration Alerts', path: '/overstays', color: 'amber' },
+    { icon: Clock, label: 'History', path: '/history', color: 'slate' },
   ];
 
   return (
-    <div className="w-64 bg-slate-900 text-white h-screen fixed left-0 top-0 flex flex-col">
+    <div className="w-64 bg-slate-900 text-white h-screen fixed left-0 top-0 flex flex-col z-50">
       <div className="p-6 border-b border-slate-800">
-        <h1 className="text-xl font-bold flex items-center gap-2">
+        <h1 className="text-2xl font-black flex items-center gap-2 tracking-tighter italic">
           <Activity className="text-emerald-500" />
           MedTrack
         </h1>
       </div>
-      <nav className="flex-1 p-4 space-y-2">
-        {navItems.map((item) => (
+      <nav className="flex-1 p-4 space-y-3 overflow-y-auto">
+        {navItems.map((item: any) => (
           <Link
             key={item.path}
             to={item.path}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors"
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold group",
+              item.custom ? item.className : "hover:bg-emerald-900/30 text-slate-300 hover:text-emerald-400"
+            )}
           >
-            <item.icon size={20} />
-            <span>{item.label}</span>
+            <item.icon size={20} className={cn(
+              "shrink-0 transition-transform group-hover:scale-110",
+              !item.custom && item.color === 'emerald' && "text-emerald-500"
+            )} />
+            <span className="text-base font-bold">{item.label}</span>
+            {item.label === 'Stay Duration Alerts' && (
+              <span className="ml-auto w-2 h-2 bg-white rounded-full animate-ping"></span>
+            )}
           </Link>
         ))}
       </nav>
+
     </div>
   );
 };
@@ -193,7 +206,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   } catch (e) {
     localStorage.removeItem('user');
   }
-  
+
   if (!user || !userData) return <Navigate to="/login" />;
 
   const handleLogout = () => {
@@ -204,14 +217,14 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen bg-slate-50 pl-64">
       <Sidebar />
-      
+
       {/* Top Header */}
       <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-8 sticky top-0 z-30">
         <div className="flex-1 max-w-md relative group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" size={18} />
-          <input 
-            type="text" 
-            placeholder="Quick search patients..." 
+          <input
+            type="text"
+            placeholder="Quick search patients..."
             className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-sm"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -221,23 +234,23 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           />
         </div>
         <div className="flex items-center gap-4">
-          <Link 
-            to="/notifications" 
+          <Link
+            to="/notifications"
             className="p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors relative"
             title="Notifications"
           >
             <Bell size={20} />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
           </Link>
-          <Link 
-            to="/settings" 
+          <Link
+            to="/settings"
             className="p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors"
             title="Settings"
           >
             <SettingsIcon size={20} />
           </Link>
           <div className="h-8 w-px bg-slate-100 mx-2"></div>
-          
+
           {/* Profile Section with Logout */}
           <div className="group relative flex items-center gap-3 cursor-pointer py-2">
             <div className="text-right hidden sm:block">
@@ -254,7 +267,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <p className="text-sm font-bold text-slate-900 truncate">{userData?.username}</p>
                 <p className="text-xs text-slate-500">Administrator</p>
               </div>
-              <button 
+              <button
                 onClick={handleLogout}
                 className="w-full text-left px-4 py-3 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors"
               >
@@ -293,7 +306,7 @@ const Login = () => {
       const userData = { username };
 
       localStorage.setItem('user', JSON.stringify(userData));
-      navigate('/');
+      navigate('/dashboard');
     } else {
       setError("Wrong password");
     }
@@ -301,7 +314,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
-      <motion.div 
+      <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md"
@@ -354,149 +367,120 @@ const Login = () => {
  * Main overview page with statistics and ward breakdown.
  */
 const Dashboard = () => {
-  const { data: stats, loading, error } = useFetch<Stats>('/api/stats');
+  const { data: stats, loading } = useFetch<Stats>('/api/stats');
+  const navigate = useNavigate();
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
-    </div>
-  );
-
-  if (error) return (
-    <div className="p-4 bg-rose-50 text-rose-600 rounded-xl border border-rose-100">
-      Error loading dashboard: {error}
+      <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
     </div>
   );
 
   if (!stats) return null;
 
-  const chartData = [
-    { name: 'Occupied', value: stats.occupied || 0, color: '#f43f5e' },
-    { name: 'Available', value: stats.available || 0, color: '#10b981' },
-  ];
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-10">
       <header>
-        <h2 className="text-3xl font-bold text-slate-900">Hospital Dashboard</h2>
-        <p className="text-slate-500">Real-time overview of bed capacity and admissions</p>
+        <h1 className="text-4xl font-black text-slate-900 tracking-tight">Hospital Dashboard</h1>
+        <p className="text-lg text-slate-500 mt-1">Real-time overview of bed capacity and admissions</p>
       </header>
 
-      {stats.available < 5 && (
-        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-6 py-4 rounded-xl flex items-center gap-3 shadow-sm">
-          <Activity className="animate-pulse" size={24} />
-          <div>
-            <h3 className="font-bold text-lg">⚠ Warning: Beds are almost full</h3>
-            <p className="text-sm opacity-90">Only {stats.available} beds remaining. Please manage admissions carefully.</p>
-          </div>
-        </div>
-      )}
-
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard label="Total Beds" value={stats.total} icon={BedDouble} color="blue" />
-        <StatCard label="Occupied" value={stats.occupied} icon={XCircle} color="rose" />
-        <StatCard label="Available" value={stats.available} icon={CheckCircle2} color="emerald" />
-        <StatCard label="ICU Available" value={stats.icuAvailable} icon={Activity} color="amber" />
+        {[
+          { label: 'Total Beds', value: stats.total, icon: Users, color: 'blue', secondaryIcon: BedDouble },
+          { label: 'Occupied', value: stats.occupied, icon: XCircle, color: 'rose' },
+          { label: 'Available', value: stats.available, icon: CheckCircle2, color: 'emerald' },
+          { label: 'ICU Available', value: stats.icuAvailable || 0, icon: Activity, color: 'amber' }
+        ].map((item, idx) => (
+          <div key={idx} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-slate-400 mb-1 uppercase tracking-widest">{item.label}</p>
+              <p className="text-4xl font-bold text-slate-900 tabular-nums tracking-tighter">{item.value}</p>
+            </div>
+            <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center",
+              item.color === 'blue' ? 'bg-blue-50 text-blue-500' :
+                item.color === 'rose' ? 'bg-rose-50 text-rose-500' :
+                  item.color === 'emerald' ? 'bg-emerald-50 text-emerald-500' :
+                    'bg-amber-50 text-amber-500')}>
+              {item.secondaryIcon ? <item.secondaryIcon size={28} /> : <item.icon size={28} />}
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h3 className="text-lg font-semibold mb-6">Bed Occupancy</h3>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Charts Section */}
+        <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Bed Occupancy (Donut) */}
+          <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 h-[400px]">
+            <h3 className="text-xl font-bold text-slate-900 mb-6">Bed Occupancy</h3>
+            <ResponsiveContainer width="100%" height="80%">
               <PieChart>
                 <Pie
-                  data={chartData}
-                  innerRadius={60}
+                  data={[
+                    { name: 'Available', value: stats.available },
+                    { name: 'Occupied', value: stats.occupied }
+                  ]}
+                  innerRadius={65}
                   outerRadius={100}
-                  paddingAngle={5}
+                  paddingAngle={0}
                   dataKey="value"
                 >
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
+                  <Cell fill="#10b981" stroke="none" />
+                  <Cell fill="#f43f5e" stroke="none" />
                 </Pie>
                 <Tooltip />
-                <Legend />
               </PieChart>
             </ResponsiveContainer>
           </div>
-        </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h3 className="text-lg font-semibold mb-6">Bed Availability by Type</h3>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+          {/* Bed Availability by Type (Bar) */}
+          <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 h-[400px]">
+            <h3 className="text-xl font-bold text-slate-900 mb-6">Bed Availability by Type</h3>
+            <ResponsiveContainer width="100%" height="80%">
               <BarChart data={stats.breakdown || []}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="type" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} />
-                <Tooltip 
-                  cursor={{ fill: '#f8fafc' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                />
-                <Legend />
-                <Bar dataKey="available" fill="#10b981" radius={[4, 4, 0, 0]} name="Available" />
-                <Bar dataKey="occupied" fill="#f43f5e" radius={[4, 4, 0, 0]} name="Occupied" />
+                <XAxis dataKey="type" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 700 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 700 }} />
+                <Tooltip />
+                <Bar dataKey="available" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h3 className="text-lg font-semibold mb-6">Quick Actions</h3>
-          <div className="grid grid-cols-1 gap-4">
-            <Link to="/admission" className="p-4 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-colors flex items-center gap-4">
-              <div className="p-3 bg-white rounded-lg shadow-sm">
-                <UserPlus size={20} />
-              </div>
-              <div className="text-left">
-                <p className="font-bold">New Admission</p>
-                <p className="text-xs opacity-70">Register a new patient</p>
-              </div>
-            </Link>
-            <Link to="/beds" className="p-4 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors flex items-center gap-4">
-              <div className="p-3 bg-white rounded-lg shadow-sm">
-                <Plus size={20} />
-              </div>
-              <div className="text-left">
-                <p className="font-bold">Manage Beds</p>
-                <p className="text-xs opacity-70">Add or update bed status</p>
-              </div>
-            </Link>
-            <Link to="/history" className="p-4 bg-slate-50 text-slate-700 rounded-xl hover:bg-slate-100 transition-colors flex items-center gap-4">
-              <div className="p-3 bg-white rounded-lg shadow-sm">
-                <Clock size={20} />
-              </div>
-              <div className="text-left">
-                <p className="font-bold">Admission History</p>
-                <p className="text-xs opacity-70">View past records</p>
-              </div>
-            </Link>
-          </div>
-        </div>
-      </div>
+        {/* Quick Actions Panel */}
+        <div className="lg:col-span-4 space-y-6">
+          <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+            <h3 className="text-xl font-bold text-slate-900 mb-8">Quick Actions</h3>
+            <div className="space-y-4">
+              <button
+                onClick={() => navigate('/admission')}
+                className="w-full p-6 bg-emerald-50 hover:bg-emerald-100 rounded-2xl flex items-center gap-4 transition-all group"
+              >
+                <div className="w-12 h-12 bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200">
+                  <UserPlus size={24} />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold text-slate-900 text-lg">New Admission</p>
+                  <p className="text-sm text-emerald-600 font-medium">Register a new patient</p>
+                </div>
+              </button>
 
-      <div className="grid grid-cols-1 gap-8">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-semibold">Recent Admissions</h3>
-            <Link to="/patients" className="text-sm text-emerald-600 font-bold hover:underline">View All</Link>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-50">
-                  <th className="pb-3">Patient</th>
-                  <th className="pb-3">Bed</th>
-                  <th className="pb-3">Doctor</th>
-                  <th className="pb-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                <RecentPatientsList />
-              </tbody>
-            </table>
+              <button
+                onClick={() => navigate('/beds')}
+                className="w-full p-6 bg-blue-50 hover:bg-blue-100 rounded-2xl flex items-center gap-4 transition-all group"
+              >
+                <div className="w-12 h-12 bg-blue-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
+                  <Plus size={24} />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold text-slate-900 text-lg">Manage Beds</p>
+                  <p className="text-sm text-blue-600 font-medium">Add or update bed status</p>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -506,14 +490,12 @@ const Dashboard = () => {
 
 const RecentPatientsList = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
-  
+
   useEffect(() => {
     fetch('/api/patients')
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) {
-          setPatients(data.slice(0, 5));
-        }
+        if (Array.isArray(data)) setPatients(data.slice(0, 5));
       })
       .catch(console.error);
   }, []);
@@ -521,32 +503,31 @@ const RecentPatientsList = () => {
   return (
     <>
       {patients.map(p => (
-        <tr key={p.id} className="group">
-          <td className="py-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-xs font-bold text-slate-600">
+        <tr key={p.id} className="hover:bg-slate-50/50 transition-colors group">
+          <td className="px-8 py-6">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-slate-900 text-white rounded-2xl flex items-center justify-center font-black text-xs tracking-tighter">
                 {(p.name || 'NA').substring(0, 2).toUpperCase()}
               </div>
               <div>
-                <p className="text-sm font-bold text-slate-900">{p.name}</p>
-                <p className="text-xs text-slate-500">{p.age} yrs • {p.gender}</p>
+                <p className="font-black text-slate-900 italic tracking-tight">{p.name}</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{p.age} Y • {p.gender}</p>
               </div>
             </div>
           </td>
-          <td className="py-4">
-            <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-[10px] font-bold">{p.bed_id}</span>
+          <td className="px-8 py-6">
+            <span className="font-black text-emerald-600 italic tracking-tight">{p.bed_id}</span>
           </td>
-          <td className="py-4 text-sm text-slate-600">{p.doctor}</td>
-          <td className="py-4">
-            <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold">Admitted</span>
+          <td className="px-8 py-6">
+            <p className="text-sm font-bold text-slate-600 italic">{p.doctor.split(' - ')[0]}</p>
+          </td>
+          <td className="px-8 py-6 text-right">
+            <span className="px-4 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+              Live
+            </span>
           </td>
         </tr>
       ))}
-      {patients.length === 0 && (
-        <tr>
-          <td colSpan={4} className="py-8 text-center text-slate-400 text-sm">No recent admissions</td>
-        </tr>
-      )}
     </>
   );
 };
@@ -613,7 +594,7 @@ const BedManagement = () => {
           <h2 className="text-2xl font-bold text-slate-900">Bed Management</h2>
           <p className="text-slate-500">Monitor and manage hospital bed inventory</p>
         </div>
-        <button 
+        <button
           onClick={() => setShowAddModal(true)}
           className="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-emerald-700"
         >
@@ -655,7 +636,7 @@ const BedManagement = () => {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
         {filteredBeds.map(bed => (
-          <div 
+          <div
             key={bed.id}
             onClick={() => handleBedClick(bed)}
             className={cn(
@@ -679,7 +660,7 @@ const BedManagement = () => {
       {/* Patient Detail Modal */}
       {selectedPatient && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
@@ -689,14 +670,14 @@ const BedManagement = () => {
                 <h3 className="text-xl font-bold">{selectedPatient.name}</h3>
                 <p className="text-emerald-100 text-sm">Patient ID: {selectedPatient.id}</p>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedPatient(null)}
                 className="p-2 hover:bg-white/10 rounded-full transition-colors"
               >
                 <X size={24} />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
@@ -802,14 +783,14 @@ const BedManagement = () => {
                 </select>
               </div>
               <div className="flex gap-3 pt-4">
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
                   className="flex-1 py-2 border rounded-lg hover:bg-slate-50"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
                   className="flex-1 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
                 >
@@ -824,244 +805,282 @@ const BedManagement = () => {
   );
 };
 
-/**
- * Admission Component
- * Form for admitting new patients and assigning beds.
- */
 const Admission = () => {
   const { showToast } = useToast();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    age: 0,
+    age: '',
     gender: 'Male',
-    contact: '+91 ',
+    bloodGroup: 'A+',
     nationality: 'Indian',
+    contact: '',
     bedType: 'Normal',
-    doctor: 'Dr. Rajesh (Oncology)',
+    doctor: DOCTORS[0],
     reason: '',
-    admission_date: new Date().toISOString().split('T')[0],
-    expectedDays: 1,
-    amountPaid: 0,
+    expectedDays: '',
+    amountPaid: '',
+    admissionDate: new Date().toISOString().split('T')[0]
   });
 
   const getRate = (type: string) => {
-    if (type === 'ICU') return 5000;
-    if (type === 'Emergency') return 2500;
-    if (type === 'Special Ward') return 3500;
-    return 1000;
+    switch (type) {
+      case 'ICU': return 5000;
+      case 'Emergency': return 2500;
+      case 'Special Ward': return 3500;
+      default: return 1000;
+    }
   };
 
-  const totalAmount = formData.expectedDays * getRate(formData.bedType);
-  const balanceAmount = totalAmount - formData.amountPaid;
-
-  const doctors = DOCTORS;
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const expectedDaysValue = parseInt(formData.expectedDays) || 0;
+  const totalAmount = expectedDaysValue * getRate(formData.bedType);
+  const balanceAmount = Math.max(0, totalAmount - (parseFloat(formData.amountPaid) || 0));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.contact.length !== 10) {
+      showToast('Contact number must be exactly 10 digits.', 'error');
+      return;
+    }
     setLoading(true);
-    
     try {
       const res = await fetch('/api/admissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: formData.name,
+          age: parseInt(formData.age) || 0,
+          gender: formData.gender,
+          blood_group: formData.bloodGroup,
+          contact: formData.contact,
+          nationality: formData.nationality,
+          admission_date: formData.admissionDate,
+          bed_type: formData.bedType,
+          doctor: formData.doctor,
+          expected_days: parseInt(formData.expectedDays) || 0,
+          amount_paid: parseFloat(formData.amountPaid) || 0,
+          amount_due: balanceAmount,
+          reason: formData.reason,
+          total_fees: 0
+        }),
       });
-      const data = await res.json();
-      if (data.success) {
-        showToast(`Success! Patient assigned to Bed ${data.bedId}`, 'success');
-        setTimeout(() => navigate('/patients'), 2000);
+      if (res.ok) {
+        showToast('Patient admitted successfully!', 'success');
+        navigate('/patients');
       } else {
-        showToast(data.message, 'error');
+        const err = await res.json();
+        showToast(err.message || 'Failed to admit patient.', 'error');
       }
     } catch (err) {
-      showToast('An error occurred during admission.', 'error');
+      showToast('Connection error. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-          <UserPlus className="text-emerald-600" />
-          Patient Admission
-        </h2>
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Patient Name</label>
-              <div className="relative">
-                <User className="absolute left-3 top-2.5 text-slate-400" size={18} />
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+    <div className="max-w-4xl mx-auto py-8">
+      <div className="bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+        <div className="p-10">
+          <header className="flex items-center gap-3 mb-8">
+            <div className="text-emerald-600">
+              <UserPlus size={36} strokeWidth={2.5} />
+            </div>
+            <h1 className="text-3xl font-black text-slate-900">Patient Admission</h1>
+          </header>
+
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="space-y-6">
+              {/* Patient Name */}
+              <div className="space-y-2">
+                <label className="text-base font-bold text-slate-700">Patient Name</label>
+                <div className="relative group">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-emerald-500 transition-all font-semibold text-lg"
+                    placeholder="Enter patient name"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Age & Gender */}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-base font-bold text-slate-700">Age</label>
+                  <input
+                    type="number"
+                    value={formData.age}
+                    onChange={e => setFormData({ ...formData, age: e.target.value })}
+                    className="w-full px-5 py-4 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-emerald-500 transition-all font-semibold text-lg"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-base font-bold text-slate-700">Gender</label>
+                  <select
+                    value={formData.gender}
+                    onChange={e => setFormData({ ...formData, gender: e.target.value })}
+                    className="w-full px-5 py-4 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-emerald-500 transition-all font-semibold text-lg appearance-none"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Nationality & Admission Date */}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-base font-bold text-slate-700">Nationality</label>
+                  <input
+                    type="text"
+                    value={formData.nationality}
+                    onChange={e => setFormData({ ...formData, nationality: e.target.value })}
+                    className="w-full px-5 py-4 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-emerald-500 transition-all font-semibold text-lg"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-base font-bold text-slate-700">Admission Date</label>
+                  <input
+                    type="date"
+                    value={formData.admissionDate}
+                    onChange={e => setFormData({ ...formData, admissionDate: e.target.value })}
+                    className="w-full px-5 py-4 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-emerald-500 transition-all font-semibold text-lg"
+                  />
+                </div>
+              </div>
+
+              {/* Contact Number */}
+              <div className="space-y-2">
+                <label className="text-base font-bold text-slate-700">Contact Number</label>
+                <div className="relative group">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                  <div className="absolute left-11 top-1/2 -translate-y-1/2 font-bold text-slate-600 border-r border-slate-100 pr-3">+91</div>
+                  <input
+                    type="tel"
+                    value={formData.contact}
+                    onChange={e => setFormData({ ...formData, contact: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                    className="w-full pl-24 pr-4 py-4 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-emerald-500 transition-all font-semibold text-lg"
+                    placeholder="Enter 10 digit number"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Bed Type & Assigned Doctor */}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-base font-bold text-slate-700">Bed Type Required</label>
+                  <select
+                    value={formData.bedType}
+                    onChange={e => setFormData({ ...formData, bedType: e.target.value })}
+                    className="w-full px-5 py-4 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-emerald-500 transition-all font-semibold text-lg"
+                  >
+                    <option value="Normal">Normal</option>
+                    <option value="ICU">ICU</option>
+                    <option value="Emergency">Emergency</option>
+                    <option value="Special Ward">Special Ward</option>
+                  </select>
+                  <p className="text-xs font-black text-emerald-600 mt-1 uppercase italic">Daily Rate: ₹{getRate(formData.bedType).toLocaleString()}</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-base font-bold text-slate-700">Assigned Doctor</label>
+                  <div className="relative">
+                    <Stethoscope className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <select
+                      value={formData.doctor}
+                      onChange={e => setFormData({ ...formData, doctor: e.target.value })}
+                      className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-emerald-500 transition-all font-semibold text-lg appearance-none"
+                    >
+                      {DOCTORS.map(doc => (
+                        <option key={doc} value={doc}>{doc}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Expected Days & Initial Amount */}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-base font-bold text-slate-700">Expected Days</label>
+                  <input
+                    type="number"
+                    value={formData.expectedDays}
+                    onChange={e => setFormData({ ...formData, expectedDays: e.target.value })}
+                    className="w-full px-5 py-4 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-emerald-500 transition-all font-semibold text-lg"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-base font-bold text-slate-700">Initial Amount Paid (₹)</label>
+                  <input
+                    type="number"
+                    value={formData.amountPaid}
+                    onChange={e => setFormData({ ...formData, amountPaid: e.target.value })}
+                    className="w-full px-5 py-4 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-emerald-500 transition-all font-semibold text-lg"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Reason for Admission */}
+              <div className="space-y-2">
+                <label className="text-base font-bold text-slate-700">Reason for Admission</label>
+                <textarea
+                  value={formData.reason}
+                  onChange={e => setFormData({ ...formData, reason: e.target.value })}
+                  className="w-full px-5 py-4 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-emerald-500 transition-all font-semibold text-lg min-h-[120px]"
+                  placeholder="Enter reason for admission"
                   required
-                />
+                ></textarea>
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Age</label>
-              <input
-                type="number"
-                value={formData.age}
-                onChange={e => setFormData({ ...formData, age: e.target.value === '' ? 0 : Number(e.target.value) })}
-                onFocus={(e) => e.target.select()}
-                className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Gender</label>
-              <select
-                value={formData.gender}
-                onChange={e => setFormData({ ...formData, gender: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Nationality</label>
-              <input
-                type="text"
-                value={formData.nationality}
-                onChange={e => setFormData({ ...formData, nationality: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Admission Date</label>
-              <input
-                type="date"
-                value={formData.admission_date}
-                onChange={e => setFormData({ ...formData, admission_date: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                required
-              />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Contact Number</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-2.5 text-slate-400" size={18} />
-                <input
-                  type="tel"
-                  value={formData.contact}
-                  onChange={e => setFormData({ ...formData, contact: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                  required
-                />
+
+            {/* Billing Estimation Box */}
+            <div className="bg-emerald-50/50 rounded-3xl p-8 border border-emerald-100/50">
+              <div className="flex items-center gap-2 mb-6 text-emerald-800">
+                <Activity size={20} />
+                <h3 className="font-black text-lg">Billing Estimation & Initial Payment</h3>
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Bed Type Required</label>
-              <select
-                value={formData.bedType}
-                onChange={e => setFormData({ ...formData, bedType: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                {WARD_TYPES.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs font-bold text-emerald-600">
-                Daily Rate: ₹{WARD_RATES[formData.bedType as keyof typeof WARD_RATES]?.toLocaleString()}
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Assigned Doctor</label>
-              <div className="relative">
-                <Stethoscope className="absolute left-3 top-2.5 text-slate-400" size={18} />
-                <select
-                  value={formData.doctor}
-                  onChange={e => setFormData({ ...formData, doctor: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+
+              <div className="grid grid-cols-2 gap-x-12 gap-y-4">
+                <div className="flex justify-between items-center text-emerald-700 font-medium">
+                  <span>Ward Rate ({formData.bedType})</span>
+                  <span className="font-extrabold">₹{getRate(formData.bedType).toLocaleString()} / day</span>
+                </div>
+                <div className="flex justify-between items-center text-emerald-700 font-medium">
+                  <span>Total Amount Needed to Pay ({formData.expectedDays} days)</span>
+                  <span className="font-extrabold text-lg">₹{totalAmount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center text-emerald-700 font-medium">
+                  <span>Amount Now Paid</span>
+                  <span className="font-extrabold text-emerald-600">₹{(parseFloat(formData.amountPaid) || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center text-emerald-700 font-medium border-t border-emerald-200/50 pt-2">
+                  <span className="font-bold">Remaining Balance</span>
+                  <span className="font-black text-2xl text-rose-500">₹{balanceAmount.toLocaleString()}</span>
+                </div>
+              </div>
+
+              <div className="mt-8">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xl shadow-xl shadow-emerald-200 transition-all active:scale-95 flex items-center justify-center gap-3"
                 >
-                  {doctors.map(doc => (
-                    <option key={doc} value={doc}>{doc}</option>
-                  ))}
-                </select>
+                  {loading ? <div className="w-6 h-6 border-3 border-white/20 border-t-white rounded-full animate-spin"></div> : 'Confirm Patient Admission'}
+                </button>
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Expected Days</label>
-              <input
-                type="number"
-                value={formData.expectedDays}
-                onChange={e => setFormData({ ...formData, expectedDays: e.target.value === '' ? 0 : Number(e.target.value) })}
-                onFocus={(e) => e.target.select()}
-                className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                min="1"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Initial Amount Paid (₹)</label>
-              <input
-                type="number"
-                value={formData.amountPaid}
-                onChange={e => setFormData({ ...formData, amountPaid: e.target.value === '' ? 0 : Number(e.target.value) })}
-                onFocus={(e) => e.target.select()}
-                className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                required
-              />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Reason for Admission</label>
-              <textarea
-                value={formData.reason}
-                onChange={e => setFormData({ ...formData, reason: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 h-24"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 space-y-4">
-            <h3 className="text-sm font-bold text-emerald-900 flex items-center gap-2">
-              <Activity size={16} />
-              Billing Estimation & Initial Payment
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <p className="text-xs text-emerald-700">Ward Rate ({formData.bedType})</p>
-                <p className="font-bold text-emerald-900">₹{getRate(formData.bedType).toLocaleString()} / day</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-emerald-700">Total Amount Needed to Pay ({formData.expectedDays} days)</p>
-                <p className="font-bold text-emerald-900">₹{totalAmount.toLocaleString()}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-emerald-700">Amount Paid By Patient</p>
-                <p className="font-bold text-emerald-900">₹{formData.amountPaid.toLocaleString()}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-emerald-700">Balance Amount</p>
-                <p className={cn(
-                  "font-bold",
-                  balanceAmount > 0 ? "text-rose-600" : "text-emerald-900"
-                )}>₹{balanceAmount.toLocaleString()}</p>
-              </div>
-            </div>
-            <p className="text-[10px] text-emerald-600 border-t border-emerald-200 pt-2">* Final bill will be adjusted at discharge based on actual stay duration.</p>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Processing...' : 'Confirm Admission'}
-          </button>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );
@@ -1076,12 +1095,15 @@ const PatientList = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [search, setSearch] = useState('');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [extendingPatient, setExtendingPatient] = useState<Patient | null>(null);
+  const [extraDays, setExtraDays] = useState('1');
+  const [extensionPayment, setExtensionPayment] = useState('0');
   const [billingPatient, setBillingPatient] = useState<Patient | null>(null);
   const [amountPaid, setAmountPaid] = useState<number>(0);
   const [feePatient, setFeePatient] = useState<Patient | null>(null);
   const [feeAmount, setFeeAmount] = useState<number>(0);
   const [paymentPatient, setPaymentPatient] = useState<Patient | null>(null);
-  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [paymentAmount, setPaymentAmount] = useState<number | string>('');
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -1127,40 +1149,86 @@ const PatientList = () => {
     }
   };
 
+  const handleExtendStay = async () => {
+    if (!extendingPatient) return;
+    const daysToAdd = parseInt(extraDays) || 0;
+    const payment = parseFloat(extensionPayment) || 0;
+
+    if (daysToAdd <= 0 && payment <= 0) {
+      showToast('Please enter days or a payment amount.', 'warning');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/patients/${extendingPatient.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expected_days: (extendingPatient.expected_days || 0) + daysToAdd,
+          amount_paid: (extendingPatient.amount_paid || 0) + payment
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`Stay extended and ₹${payment.toLocaleString()} payment recorded.`, 'success');
+        setExtendingPatient(null);
+        setExtraDays('1');
+        setExtensionPayment('0');
+
+        // Refresh local state
+        setPatients(prev => prev.map(p =>
+          p.id === extendingPatient.id
+            ? {
+              ...p,
+              expected_days: (p.expected_days || 0) + daysToAdd,
+              amount_paid: (p.amount_paid || 0) + payment
+            }
+            : p
+        ));
+      } else {
+        showToast(data.message || 'Failed to update stay', 'error');
+      }
+    } catch (err) {
+      showToast('Connection error. Please restart your server.', 'error');
+    }
+  };
+
   const handleDischargeClick = (patient: Patient) => {
     setBillingPatient(patient);
-    setAmountPaid(0); // This will be the "Additional Payment"
+    setAmountPaid(0);
   };
 
   const confirmDischarge = async () => {
     if (!billingPatient) return;
-    
+
     try {
       const totalBill = calculateTotalBill(billingPatient);
       const totalPaidSoFar = (billingPatient.amount_paid || 0) + amountPaid;
       const amountDue = Math.max(0, totalBill - totalPaidSoFar);
 
+      if (amountDue > 0) {
+        showToast(`Cannot discharge. Balance of ₹${amountDue.toLocaleString()} must be paid first.`, 'warning');
+        return;
+      }
+
       const res = await fetch('/api/discharge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          patientId: billingPatient.id, 
+        body: JSON.stringify({
+          patientId: billingPatient.id,
           bedId: billingPatient.bed_id,
           amount_paid: totalPaidSoFar,
-          amount_due: amountDue
+          amount_due: 0
         }),
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
           setPatients(patients.filter(p => p.id !== billingPatient.id));
           setBillingPatient(null);
-          if (data.status === 'Payment Pending') {
-            showToast('Patient moved to Pending Payments list.', 'info');
-          } else {
-            showToast('Patient discharged successfully.', 'success');
-          }
+          showToast('Patient discharged successfully.', 'success');
         } else {
           showToast(`Discharge failed: ${data.message}`, 'error');
         }
@@ -1174,8 +1242,8 @@ const PatientList = () => {
     }
   };
 
-  const filteredPatients = patients.filter(p => 
-    (p.name || '').toLowerCase().includes(search.toLowerCase()) || 
+  const filteredPatients = patients.filter(p =>
+    (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
     (p.bed_id || '').toLowerCase().includes(search.toLowerCase())
   );
 
@@ -1202,12 +1270,13 @@ const PatientList = () => {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-100">
-              <th className="px-6 py-4 text-sm font-semibold text-slate-600">Patient</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-600">Bed Info</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-600">Admission Date</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-600">Doctor</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-600">Billing</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">Action</th>
+              <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Patient Subject</th>
+              <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Ward / Node</th>
+              <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Diagnostics</th>
+              <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Admission Registry</th>
+              <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Assigned Specialist</th>
+              <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Financial Ledger</th>
+              <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Operations</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -1226,13 +1295,23 @@ const PatientList = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <div className="flex flex-col gap-1">
+                    <span className="px-2 py-1 bg-rose-50 text-rose-700 rounded text-[10px] font-bold w-fit">Blood: {patient.blood_group}</span>
+                    {calculateDays(patient.admission_date, 0) > patient.expected_days && (
+                      <span className="px-2 py-1 bg-rose-600 text-white rounded text-[10px] font-black w-fit animate-pulse flex items-center gap-1">
+                        <AlertCircle size={10} /> STAY EXCEEDED
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2 text-base text-slate-600 font-bold">
                     <Calendar size={14} />
                     {new Date(patient.admission_date).toLocaleDateString()}
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <div className="flex items-center gap-2 text-base text-slate-600 font-bold">
                     <Stethoscope size={14} />
                     {patient.doctor}
                   </div>
@@ -1270,6 +1349,12 @@ const PatientList = () => {
                       Details
                     </button>
                     <button
+                      onClick={() => setExtendingPatient(patient)}
+                      className="text-amber-600 hover:text-amber-700 text-sm font-bold px-3 py-1 border border-amber-200 rounded-lg hover:bg-amber-50 transition-colors"
+                    >
+                      Extend
+                    </button>
+                    <button
                       onClick={() => handleDischargeClick(patient)}
                       className="text-rose-600 hover:text-rose-700 text-sm font-bold px-3 py-1 border border-rose-200 rounded-lg hover:bg-rose-50 transition-colors"
                     >
@@ -1291,6 +1376,86 @@ const PatientList = () => {
       </div>
 
       <AnimatePresence>
+        {extendingPatient && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md border border-slate-100"
+            >
+              <h3 className="text-2xl font-black text-slate-900 mb-2">Extend Patient Stay</h3>
+              <p className="text-slate-500 mb-6">Patient: <span className="font-bold text-slate-900">{extendingPatient.name}</span></p>
+
+              <div className="space-y-4">
+                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-3 mb-4">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500 font-bold uppercase tracking-wider">Ward Type</span>
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded font-black text-xs uppercase">{extendingPatient.bed_type}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 text-sm font-bold">Current Dues</span>
+                    <span className="font-black text-rose-600">₹{((extendingPatient.amount_due || 0)).toLocaleString()}</span>
+                  </div>
+                  <div className="h-px bg-slate-200"></div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 text-sm font-bold">Extension Fee ({extraDays} days)</span>
+                    <span className="font-bold text-slate-900">₹{((parseInt(extraDays) || 0) * (extendingPatient.bed_type === 'ICU' ? 5000 : extendingPatient.bed_type === 'Emergency' ? 2500 : extendingPatient.bed_type === 'Special Ward' ? 3500 : 1000)).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2">
+                    <span className="text-slate-900 font-black">Total After Extension</span>
+                    <span className="text-lg font-black text-emerald-600">₹{(
+                      (extendingPatient.amount_due || 0) +
+                      ((parseInt(extraDays) || 0) * (extendingPatient.bed_type === 'ICU' ? 5000 : extendingPatient.bed_type === 'Emergency' ? 2500 : extendingPatient.bed_type === 'Special Ward' ? 3500 : 1000))
+                    ).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-black text-slate-700 mb-2 uppercase tracking-wide">Additional Days Needed</label>
+                  <input
+                    type="number"
+                    value={extraDays}
+                    onChange={e => setExtraDays(e.target.value)}
+                    min="0"
+                    placeholder="Enter days..."
+                    className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl outline-none focus:border-amber-500 transition-all font-bold text-lg"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-black text-slate-700 mb-2 uppercase tracking-wide">Record Payment (₹)</label>
+                  <input
+                    type="number"
+                    value={extensionPayment}
+                    onChange={e => setExtensionPayment(e.target.value)}
+                    min="0"
+                    placeholder="Enter amount paid..."
+                    className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl outline-none focus:border-emerald-500 transition-all font-bold text-lg text-emerald-600"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={() => setExtendingPatient(null)}
+                    className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-bold transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleExtendStay}
+                    className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black shadow-lg shadow-emerald-100 transition-all flex items-center justify-center gap-2"
+                  >
+                    Confirm & Update
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {selectedPatient && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <motion.div
@@ -1309,14 +1474,14 @@ const PatientList = () => {
                     <p className="text-sm text-slate-500">Patient ID: {selectedPatient.id}</p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setSelectedPatient(null)}
                   className="p-2 hover:bg-slate-200 rounded-full transition-colors"
                 >
                   <X size={20} className="text-slate-500" />
                 </button>
               </div>
-              
+
               <div className="p-8 grid grid-cols-2 gap-8">
                 <div className="space-y-6">
                   <div>
@@ -1325,6 +1490,10 @@ const PatientList = () => {
                       <div className="flex justify-between">
                         <span className="text-slate-500 text-sm">Age / Gender</span>
                         <span className="text-slate-900 font-medium text-sm">{selectedPatient.age} yrs • {selectedPatient.gender}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500 text-sm">Blood Group</span>
+                        <span className="text-rose-600 font-bold text-sm">{selectedPatient.blood_group}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500 text-sm">Nationality</span>
@@ -1368,8 +1537,8 @@ const PatientList = () => {
                         <span className="text-emerald-700">Ward Rate ({selectedPatient.bed_type})</span>
                         <span className="font-bold text-emerald-900">₹{
                           selectedPatient.bed_type === 'ICU' ? '5,000' :
-                          selectedPatient.bed_type === 'Emergency' ? '2,500' :
-                          selectedPatient.bed_type === 'Special Ward' ? '3,500' : '1,000'
+                            selectedPatient.bed_type === 'Emergency' ? '2,500' :
+                              selectedPatient.bed_type === 'Special Ward' ? '3,500' : '1,000'
                         } / day</span>
                       </div>
                       <div className="flex justify-between text-sm">
@@ -1411,7 +1580,7 @@ const PatientList = () => {
                   </div>
 
                   <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-xl border border-slate-100">
-                    <QRCodeSVG 
+                    <QRCodeSVG
                       value={`Patient ID: ${selectedPatient.id}\nName: ${selectedPatient.name}\nBed: ${selectedPatient.bed_id}\nDoctor: ${selectedPatient.doctor}`}
                       size={120}
                       level="Q"
@@ -1423,13 +1592,13 @@ const PatientList = () => {
               </div>
 
               <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
-                <button 
+                <button
                   onClick={() => setSelectedPatient(null)}
                   className="px-6 py-2 text-slate-600 font-bold hover:bg-slate-200 rounded-lg transition-colors"
                 >
                   Close
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     handleDischargeClick(selectedPatient);
                     setSelectedPatient(null);
@@ -1458,7 +1627,7 @@ const PatientList = () => {
                   <X size={24} />
                 </button>
               </div>
-              
+
               <div className="p-6 space-y-6">
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
@@ -1484,8 +1653,7 @@ const PatientList = () => {
                   <input
                     type="number"
                     value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value === '' ? 0 : Number(e.target.value))}
-                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setPaymentAmount(e.target.value === '' ? '' : Number(e.target.value))}
                     className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
                     placeholder="Enter amount to record"
                   />
@@ -1518,7 +1686,7 @@ const PatientList = () => {
                   <X size={24} />
                 </button>
               </div>
-              
+
               <div className="p-6 space-y-6">
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
@@ -1569,7 +1737,7 @@ const PatientList = () => {
                   <X size={24} />
                 </button>
               </div>
-              
+
               <div className="p-6 space-y-6">
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
@@ -1598,11 +1766,10 @@ const PatientList = () => {
                   <label className="block text-sm font-medium text-slate-700 mb-1">Additional Payment (₹)</label>
                   <input
                     type="number"
-                    value={amountPaid}
+                    value={amountPaid || ''}
                     onChange={(e) => setAmountPaid(e.target.value === '' ? 0 : Number(e.target.value))}
-                    onFocus={(e) => e.target.select()}
                     className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                    placeholder="Enter additional payment"
+                    placeholder="Enter amount to pay"
                   />
                 </div>
 
@@ -1648,8 +1815,8 @@ const PatientHistory = () => {
       .catch(console.error);
   }, []);
 
-  const filteredHistory = history.filter(p => 
-    (p.name || '').toLowerCase().includes(search.toLowerCase()) || 
+  const filteredHistory = history.filter(p =>
+    (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
     (p.bed_id || '').toLowerCase().includes(search.toLowerCase())
   );
 
@@ -1734,6 +1901,91 @@ const PatientHistory = () => {
 };
 
 /**
+ * OverstayAlerts Component
+ * Lists patients who have exceeded their expected duration of stay.
+ */
+const OverstayAlerts = () => {
+  const [overstayPatients, setOverstayPatients] = useState<Patient[]>([]);
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetch('/api/patients')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const overstays = data.filter(p => {
+            if (p.status === 'Discharged') return false;
+            const admissionDate = new Date(p.admission_date);
+            const today = new Date();
+            const diffTime = today.getTime() - admissionDate.getTime();
+            const actualDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return actualDays > (p.expected_days || 0);
+          });
+          setOverstayPatients(overstays);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <header>
+        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Stay Duration Alerts</h2>
+        <p className="text-slate-500">Patients who have exceeded their planned admission period</p>
+      </header>
+
+      {overstayPatients.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {overstayPatients.map(patient => (
+            <div key={patient.id} className="bg-white p-6 rounded-3xl border border-rose-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-rose-50 -mr-8 -mt-8 rounded-full transition-transform group-hover:scale-110"></div>
+              <div className="relative">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center font-black">
+                    {patient.name?.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900">{patient.name}</h3>
+                    <p className="text-xs text-rose-500 font-bold uppercase tracking-widest">Stay Duration Exceeded</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 mb-6">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">Expected Days</span>
+                    <span className="font-bold text-slate-900">{patient.expected_days} Days</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">Actual Days</span>
+                    <span className="font-bold text-rose-600">
+                      {Math.ceil((new Date().getTime() - new Date(patient.admission_date).getTime()) / (1000 * 60 * 60 * 24))} Days
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => navigate('/patients')}
+                  className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+                >
+                  Manage Patient <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white p-12 rounded-3xl border border-slate-100 text-center">
+          <CheckCircle2 className="mx-auto text-emerald-500 mb-4" size={48} />
+          <h3 className="text-xl font-bold text-slate-900">No Stay Alerts</h3>
+          <p className="text-slate-500">All patients are currently within their expected stay boundaries.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/**
  * Notifications Component
  * Page for viewing system alerts and activity logs.
  */
@@ -1761,9 +2013,9 @@ const Notifications = () => {
               <div className={cn(
                 "p-2 rounded-lg",
                 n.type === 'info' ? "bg-blue-50 text-blue-600" :
-                n.type === 'warning' ? "bg-amber-50 text-amber-600" :
-                n.type === 'success' ? "bg-emerald-50 text-emerald-600" :
-                "bg-rose-50 text-rose-600"
+                  n.type === 'warning' ? "bg-amber-50 text-amber-600" :
+                    n.type === 'success' ? "bg-emerald-50 text-emerald-600" :
+                      "bg-rose-50 text-rose-600"
               )}>
                 <Bell size={20} />
               </div>
@@ -1881,7 +2133,7 @@ const Settings = () => {
               Session Management
             </h3>
             <p className="text-rose-700 text-sm mt-1">Sign out of your current session on this device.</p>
-            <button 
+            <button
               onClick={handleLogout}
               className="mt-4 bg-rose-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-rose-700 transition-colors flex items-center gap-2"
             >
@@ -1895,193 +2147,7 @@ const Settings = () => {
   );
 };
 
-/**
- * PendingPayments Component
- * Page for tracking and processing outstanding patient bills.
- */
-const PendingPayments = () => {
-  const { showToast } = useToast();
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [billingPatient, setBillingPatient] = useState<Patient | null>(null);
-  const [amountPaid, setAmountPaid] = useState<number>(0);
 
-  useEffect(() => {
-    fetch('/api/patients')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) setPatients(data.filter(p => p.status === 'Payment Pending'));
-      })
-      .catch(console.error);
-  }, []);
-
-  const handlePayClick = (patient: Patient) => {
-    setBillingPatient(patient);
-    setAmountPaid(0);
-  };
-
-  const confirmPayment = async () => {
-    if (!billingPatient) return;
-    
-    try {
-      const remainingDue = (billingPatient.amount_due || 0) - amountPaid;
-      const isFullPayment = remainingDue <= 0;
-
-      const res = await fetch('/api/discharge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          patientId: billingPatient.id, 
-          bedId: billingPatient.bed_id,
-          amount_paid: (billingPatient.amount_paid || 0) + amountPaid,
-          amount_due: Math.max(0, remainingDue)
-        }),
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          if (data.status === 'Discharged') {
-            setPatients(patients.filter(p => p.id !== billingPatient.id));
-            showToast('Payment complete. Patient discharged successfully.', 'success');
-          } else {
-            setPatients(patients.map(p => p.id === billingPatient.id ? { 
-              ...p, 
-              amount_paid: (p.amount_paid || 0) + amountPaid, 
-              amount_due: Math.max(0, remainingDue) 
-            } : p));
-            showToast('Partial payment recorded.', 'info');
-          }
-          setBillingPatient(null);
-          setAmountPaid(0);
-        } else {
-          showToast(`Payment failed: ${data.message}`, 'error');
-        }
-      } else {
-        const errorData = await res.json();
-        showToast(`Error: ${errorData.message || 'Failed to process payment'}`, 'error');
-      }
-    } catch (err) {
-      console.error(err);
-      showToast('An error occurred while processing payment', 'error');
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <header>
-        <h2 className="text-2xl font-bold text-slate-900">Pending Payments</h2>
-        <p className="text-slate-500">Patients awaiting full payment clearance</p>
-      </header>
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-100">
-              <th className="px-6 py-4 text-sm font-semibold text-slate-600">Patient Name</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-600">Bed Info</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-600">Total Bill</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-600">Amount Due</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {patients.map((patient) => (
-              <tr key={patient.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4 font-bold text-slate-900">{patient.name}</td>
-                <td className="px-6 py-4 text-slate-600">{patient.bed_id} ({patient.bed_type})</td>
-                <td className="px-6 py-4 text-slate-900 font-bold">₹{calculateTotalBill(patient).toLocaleString()}</td>
-                <td className="px-6 py-4 text-rose-600 font-bold">₹{(patient.amount_due || 0).toLocaleString()}</td>
-                <td className="px-6 py-4 text-right">
-                  <button
-                    onClick={() => handlePayClick(patient)}
-                    className="text-emerald-600 hover:text-emerald-700 text-sm font-bold px-3 py-1 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors"
-                  >
-                    Pay & Discharge
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {patients.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                  No pending payments
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <AnimatePresence>
-        {billingPatient && (
-          <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
-            >
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h3 className="text-xl font-bold text-slate-900">Clear Payment</h3>
-                <button onClick={() => setBillingPatient(null)} className="text-slate-400 hover:text-slate-600 transition-colors">
-                  <X size={24} />
-                </button>
-              </div>
-              
-              <div className="p-6 space-y-6">
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Patient Name</span>
-                    <span className="font-bold text-slate-900">{billingPatient.name}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Total Bill</span>
-                    <span className="font-bold text-slate-900">₹{calculateTotalBill(billingPatient)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Amount Paid So Far</span>
-                    <span className="font-bold text-emerald-600">₹{billingPatient.amount_paid || 0}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Current Amount Due</span>
-                    <span className="font-bold text-rose-600">₹{billingPatient.amount_due || 0}</span>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-slate-100">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">New Payment Amount (₹)</label>
-                  <input
-                    type="number"
-                    value={amountPaid}
-                    onChange={(e) => setAmountPaid(e.target.value === '' ? 0 : Number(e.target.value))}
-                    onFocus={(e) => e.target.select()}
-                    className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-
-                <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl">
-                  <span className="font-medium text-slate-700">Remaining Due</span>
-                  <span className={cn(
-                    "text-xl font-bold",
-                    (billingPatient.amount_due || 0) - amountPaid > 0 ? "text-rose-600" : "text-emerald-600"
-                  )}>
-                    ₹{Math.max(0, (billingPatient.amount_due || 0) - amountPaid)}
-                  </span>
-                </div>
-
-                <button
-                  onClick={confirmPayment}
-                  className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors"
-                >
-                  Confirm Payment
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
 
 const BedAvailabilityViewer = () => {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -2170,14 +2236,14 @@ export default function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Layout><Dashboard /></Layout>} />
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
           <Route path="/beds" element={<Layout><BedManagement /></Layout>} />
           <Route path="/admission" element={<Layout><Admission /></Layout>} />
           <Route path="/patients" element={<Layout><PatientList /></Layout>} />
           <Route path="/history" element={<Layout><PatientHistory /></Layout>} />
-          <Route path="/pending-payments" element={<Layout><PendingPayments /></Layout>} />
+          <Route path="/overstays" element={<Layout><OverstayAlerts /></Layout>} />
           <Route path="/notifications" element={<Layout><Notifications /></Layout>} />
-          <Route path="/settings" element={<Layout><Settings /></Layout>} />
           <Route path="/viewer" element={<BedAvailabilityViewer />} />
         </Routes>
       </Router>

@@ -10,6 +10,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
+import Database from "better-sqlite3";
 import { WARD_TYPES, WARD_RATES, DOCTORS, REASONS } from "./shared/constants.js";
 
 dotenv.config();
@@ -41,6 +42,7 @@ const patientSchema = new mongoose.Schema({
   name: { type: String, required: true },
   age: { type: Number, required: true },
   gender: { type: String, required: true },
+  blood_group: { type: String, default: 'Not Specified' },
   contact: { type: String, required: true },
   nationality: { type: String, default: 'Indian' },
   admission_date: { type: Date, default: Date.now },
@@ -51,7 +53,7 @@ const patientSchema = new mongoose.Schema({
   amount_due: { type: Number, default: 0 },
   total_fees: { type: Number, default: 0 },
   expected_days: { type: Number, default: 1 },
-  status: { type: String, enum: ['Admitted', 'Payment Pending'], default: 'Admitted' }
+  status: { type: String, enum: ['Admitted'], default: 'Admitted' }
 });
 
 // History Schema for discharged patient records
@@ -59,6 +61,7 @@ const historySchema = new mongoose.Schema({
   name: { type: String, required: true },
   age: { type: Number, required: true },
   gender: { type: String, required: true },
+  blood_group: { type: String, default: 'Not Specified' },
   contact: { type: String, required: true },
   nationality: { type: String, required: true },
   admission_date: { type: Date, required: true },
@@ -95,6 +98,105 @@ for (let i = 1; i <= 100; i++) {
 }
 
 let isDemoMode = false;
+let db: any = null;
+
+// Initialize SQLite fallback
+function initSQLite() {
+  try {
+    db = new Database('hospital.db');
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS patients (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        age INTEGER,
+        gender TEXT,
+        blood_group TEXT,
+        contact TEXT,
+        nationality TEXT,
+        admission_date TEXT,
+        bed_id TEXT,
+        doctor TEXT,
+        reason TEXT,
+        amount_paid REAL,
+        amount_due REAL,
+        total_fees REAL,
+        expected_days INTEGER,
+        status TEXT
+      );
+      CREATE TABLE IF NOT EXISTS history (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        age INTEGER,
+        gender TEXT,
+        blood_group TEXT,
+        contact TEXT,
+        nationality TEXT,
+        admission_date TEXT,
+        discharge_date TEXT,
+        bed_id TEXT,
+        bed_type TEXT,
+        doctor TEXT,
+        reason TEXT,
+        amount_paid REAL,
+        amount_due REAL,
+        total_fees REAL
+      );
+    `);
+    console.log("Local SQLite database initialized for permanent storage.");
+    
+    // Load existing data into demo arrays for compatibility
+    demoPatients = db.prepare("SELECT * FROM patients").all().map((p: any) => ({
+      ...p,
+      admission_date: new Date(p.admission_date)
+    }));
+    demoHistory = db.prepare("SELECT * FROM history").all().map((h: any) => ({
+      ...h,
+      admission_date: new Date(h.admission_date),
+      discharge_date: new Date(h.discharge_date)
+    }));
+    
+    // Update bed status based on loaded patients
+    demoPatients.forEach(p => {
+      const bed = demoBeds.find(b => b.id === p.bed_id);
+      if (bed) bed.status = 'Occupied';
+    });
+  } catch (e) {
+    console.error("SQLite initialization failed:", e);
+  }
+}
+
+// Helper to persist demo/SQLite data
+function persistData() {
+  if (!db) return;
+  try {
+    const deletePatients = db.prepare("DELETE FROM patients");
+    const insertPatient = db.prepare(`
+      INSERT INTO patients (id, name, age, gender, blood_group, contact, nationality, admission_date, bed_id, doctor, reason, amount_paid, amount_due, total_fees, expected_days, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    const deleteHistory = db.prepare("DELETE FROM history");
+    const insertHistory = db.prepare(`
+      INSERT INTO history (id, name, age, gender, blood_group, contact, nationality, admission_date, discharge_date, bed_id, bed_type, doctor, reason, amount_paid, amount_due, total_fees)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const transaction = db.transaction(() => {
+      deletePatients.run();
+      for (const p of demoPatients) {
+        insertPatient.run(p.id, p.name, p.age, p.gender, p.blood_group, p.contact, p.nationality, p.admission_date.toISOString(), p.bed_id, p.doctor, p.reason, p.amount_paid, p.amount_due, p.total_fees || 0, p.expected_days, p.status);
+      }
+      deleteHistory.run();
+      for (const h of demoHistory) {
+        insertHistory.run(h.id, h.name, h.age, h.gender, h.blood_group, h.contact, h.nationality, h.admission_date.toISOString(), h.discharge_date.toISOString(), h.bed_id, h.bed_type, h.doctor, h.reason, h.amount_paid, h.amount_due, h.total_fees || 0);
+      }
+    });
+    transaction();
+    console.log(`[DATABASE] Success! ${demoPatients.length} patients and ${demoHistory.length} history records saved to hospital.db`);
+  } catch (e) {
+    console.error("Data persistence failed:", e);
+  }
+}
 
 // Seed initial data
 async function seedData() {
@@ -124,15 +226,20 @@ async function startServer() {
   try {
     mongoose.set('strictQuery', false);
     if (!MONGODB_URI) {
-      throw new Error("MONGODB_URI is not defined in environment variables. Please add your MongoDB Atlas connection string in the Settings menu.");
+      throw new Error("MONGODB_URI not found");
     }
-    await mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 5000 });
-    console.log("Connected to MongoDB successfully!");
+    // Try to connect to Cloud MongoDB
+    await mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 8000 });
+    console.log("☁️ CLOUD DATABASE CONNECTED: Live Hospital storage is active.");
+    isDemoMode = false;
     await seedData();
   } catch (err: any) {
-    console.error("MongoDB connection failed! Falling back to DEMO MODE (data will not be permanently saved).", err.message);
+    // Fallback to local SQLite if Cloud fails
+    console.log("💻 LOCAL STORAGE ACTIVE: Could not reach cloud, using secure laptop file.");
     isDemoMode = true;
+    initSQLite();
   }
+  
   const app = express();
   // Clear all patient and history data
   app.post("/api/admin/clear-data", async (req, res) => {
@@ -143,6 +250,7 @@ async function startServer() {
         demoNotifications = [];
         // Reset all beds to available
         demoBeds.forEach(bed => bed.status = 'Available');
+        persistData();
       } else {
         await Patient.deleteMany({});
         await History.deleteMany({});
@@ -269,7 +377,11 @@ async function startServer() {
    * Handles the admission of a new patient and bed assignment.
    */
   app.post("/api/admissions", async (req, res) => {
-    let { name, age, gender, contact, nationality, bedType, doctor, reason, admission_date, expectedDays, amountPaid } = req.body;
+    let { 
+      name, age, gender, contact, nationality, 
+      bed_type, doctor, reason, admission_date, 
+      expected_days, amount_paid, blood_group 
+    } = req.body;
 
     // Ensure contact starts with +91
     if (contact && !contact.startsWith('+91')) {
@@ -283,33 +395,34 @@ async function startServer() {
       return 1000;
     };
 
-    const totalAmount = (expectedDays || 1) * getRate(bedType);
-    const balanceAmount = totalAmount - (amountPaid || 0);
+    const totalAmount = (parseInt(expected_days) || 1) * getRate(bed_type);
+    const balanceAmount = totalAmount - (parseFloat(amount_paid) || 0);
 
     if (isDemoMode) {
-      const bed = demoBeds.find(b => b.type === bedType && b.status === 'Available');
+      const bed = demoBeds.find(b => b.type === bed_type && b.status === 'Available');
       if (!bed) {
-        return res.json({ success: false, message: `No available ${bedType} beds.` });
+        return res.json({ success: false, message: `No available ${bed_type} beds.` });
       }
 
       const newPatient = {
         id: `P${1000 + demoPatients.length + demoHistory.length}`,
-        name, age, gender, contact, nationality: nationality || 'Indian',
+        name, age, gender, contact, blood_group, nationality: nationality || 'Indian',
         bed_id: bed.id, doctor, reason,
         admission_date: admission_date ? new Date(admission_date) : new Date(),
-        amount_paid: amountPaid || 0,
+        amount_paid: parseFloat(amount_paid) || 0,
         amount_due: Math.max(0, balanceAmount),
         total_fees: 0,
-        expected_days: expectedDays || 1,
+        expected_days: parseInt(expected_days) || 1,
         status: 'Admitted'
       };
       demoPatients.push(newPatient);
       bed.status = 'Occupied';
+      persistData();
 
       demoNotifications.unshift({
         id: Date.now(),
         title: 'New Admission',
-        message: `Patient ${name} admitted to ${bedType} Bed ${bed.id}`,
+        message: `Patient ${name} admitted to ${bed_type} Bed ${bed.id}`,
         time: 'Just now',
         type: 'info'
       });
@@ -318,18 +431,26 @@ async function startServer() {
     }
 
     try {
-      const bed = await Bed.findOne({ type: bedType, status: 'Available' });
+      const bed = await Bed.findOne({ type: bed_type, status: 'Available' });
 
       if (!bed) {
-        return res.json({ success: false, message: `No available ${bedType} beds.` });
+        return res.json({ success: false, message: `No available ${bed_type} beds.` });
       }
       await Patient.create({
-        name, age, gender, contact, nationality: nationality || 'Indian', bed_id: bed.id, doctor, reason,
+        name,
+        age,
+        gender,
+        blood_group,
+        contact,
+        nationality: nationality || 'Indian', 
+        bed_id: bed.id, 
+        doctor, 
+        reason,
         admission_date: admission_date ? new Date(admission_date) : new Date(),
-        amount_paid: amountPaid || 0,
+        amount_paid: parseFloat(amount_paid) || 0,
         amount_due: Math.max(0, balanceAmount),
         total_fees: 0,
-        expected_days: expectedDays || 1,
+        expected_days: parseInt(expected_days) || 1,
         status: 'Admitted'
       });
 
@@ -365,6 +486,51 @@ async function startServer() {
 
     res.json(patientsWithBedType);
   });
+  
+  // Update patient details (used for stay extension)
+  app.put("/api/patients/:id", async (req, res) => {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    if (isDemoMode) {
+      const patient = demoPatients.find(p => p.id === id);
+      if (patient) {
+        Object.assign(patient, updateData);
+        // Recalculate amount_due if key fields changed
+        if ('expected_days' in updateData || 'amount_paid' in updateData || 'total_fees' in updateData) {
+          const bed = demoBeds.find(b => b.id === patient.bed_id);
+          const rate = WARD_RATES[(bed?.type || 'Normal') as keyof typeof WARD_RATES] || 1000;
+          const totalAmount = (patient.expected_days || 1) * rate;
+          patient.amount_due = Math.max(0, totalAmount - (patient.amount_paid || 0) + (patient.total_fees || 0));
+        }
+        persistData();
+        return res.json({ success: true, patient });
+      }
+      return res.status(404).json({ success: false, message: 'Patient not found' });
+    }
+
+    try {
+      const patient = await Patient.findById(id);
+      if (!patient) return res.status(404).json({ success: false, message: 'Patient not found' });
+
+      Object.assign(patient, updateData);
+      
+      // Recalculate amount_due if key fields changed
+      if ('expected_days' in updateData || 'amount_paid' in updateData || 'total_fees' in updateData) {
+        const bed = await Bed.findOne({ id: patient.bed_id });
+        const rate = WARD_RATES[(bed?.type || 'Normal') as keyof typeof WARD_RATES] || 1000;
+        const totalAmount = (patient.expected_days || 1) * rate;
+        patient.amount_due = Math.max(0, totalAmount - (patient.amount_paid || 0) + (patient.total_fees || 0));
+        console.log(`Recalculated balance for ${patient.name}: Total ${totalAmount}, Paid ${patient.amount_paid}, Due ${patient.amount_due}`);
+      }
+
+      await patient.save();
+      res.json({ success: true, patient });
+    } catch (error) {
+      console.error("Update error:", error);
+      res.status(500).json({ success: false, message: "Failed to update patient" });
+    }
+  });
 
   /**
    * Patient History API
@@ -385,6 +551,7 @@ async function startServer() {
       const patient = demoPatients.find(p => p.id === id);
       if (patient) {
         patient.amount_paid = (patient.amount_paid || 0) + amount;
+        persistData();
 
         demoNotifications.unshift({
           id: Date.now(),
@@ -420,6 +587,7 @@ async function startServer() {
       const patient = demoPatients.find(p => p.id === id);
       if (patient) {
         patient.total_fees = (patient.total_fees || 0) + amount;
+        persistData();
 
         demoNotifications.unshift({
           id: Date.now(),
@@ -464,8 +632,7 @@ async function startServer() {
         if (bed) bed.status = 'Available';
 
         if (amount_due > 0) {
-          patient.status = 'Payment Pending';
-          return res.json({ success: true, status: 'Payment Pending' });
+          return res.status(400).json({ success: false, message: 'Total balance must be cleared before discharge.' });
         } else {
           demoHistory.push({
             ...patient,
@@ -473,6 +640,7 @@ async function startServer() {
             bed_type: bed ? bed.type : 'Unknown'
           });
           demoPatients.splice(patientIndex, 1);
+          persistData();
 
           demoNotifications.unshift({
             id: Date.now(),
@@ -512,16 +680,16 @@ async function startServer() {
       }
 
       if (amount_due > 0) {
-        patient.status = 'Payment Pending';
-        await patient.save();
-        return res.json({ success: true, status: 'Payment Pending' });
+        return res.status(400).json({ success: false, message: 'All pending dues must be paid before discharge.' });
       } else {
         // Move to history
         await History.create({
           name: patient.name,
           age: patient.age,
           gender: patient.gender,
+          blood_group: patient.blood_group,
           contact: patient.contact,
+          emergency_contact: patient.emergency_contact,
           nationality: patient.nationality,
           admission_date: patient.admission_date,
           discharge_date: new Date(),

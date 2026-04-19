@@ -20,6 +20,7 @@ export interface Patient {
   amount_due: number;
   total_fees?: number;
   expected_days?: number;
+  blood_group: string;
   status?: 'Admitted' | 'Payment Pending';
 }
 
