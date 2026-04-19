@@ -228,14 +228,24 @@ async function startServer() {
     if (!MONGODB_URI) {
       throw new Error("MONGODB_URI not found");
     }
-    // Try to connect to Cloud MongoDB
-    await mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 8000 });
-    console.log("☁️ CLOUD DATABASE CONNECTED: Live Hospital storage is active.");
+    console.log("尝试连接到 MongoDB 云数据库...");
+    // Try to connect to Cloud MongoDB using IPv4 (family: 4) to bypass DNS issues
+    await mongoose.connect(MONGODB_URI, { 
+      serverSelectionTimeoutMS: 15000,
+      family: 4 
+    });
+    console.log("✅ CLOUD DATABASE CONNECTED: Data is now syncing with MongoDB Compass.");
     isDemoMode = false;
     await seedData();
   } catch (err: any) {
-    // Fallback to local SQLite if Cloud fails
-    console.log("💻 LOCAL STORAGE ACTIVE: Could not reach cloud, using secure laptop file.");
+    if (process.env.NODE_ENV === 'production') {
+      console.error("⛔ CRITICAL ERROR: MongoDB connection failed in Production.");
+      console.error("Data CANNOT be stored permanently without MongoDB Atlas.");
+      console.error("Error Details:", err.message);
+      process.exit(1); 
+    }
+    console.error("❌ CLOUD CONNECTION FAILED:", err.message);
+    console.log("Staying in local mode (Development). Using SQLite Safety Net.");
     isDemoMode = true;
     initSQLite();
   }
