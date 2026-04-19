@@ -822,7 +822,7 @@ const Admission = () => {
     reason: '',
     expectedDays: '',
     amountPaid: '',
-    admissionDate: new Date().toISOString().slice(0, 16) // datetime-local format
+    admissionDate: new Date().toISOString().split('T')[0]
   });
 
   const getRate = (type: string) => {
@@ -856,9 +856,10 @@ const Admission = () => {
           blood_group: formData.bloodGroup,
           contact: formData.contact,
           nationality: formData.nationality,
-          admission_date: formData.admissionDate,
           bed_type: formData.bedType,
           doctor: formData.doctor,
+          // Capture current time but use the selected date
+          admission_date: new Date(formData.admissionDate + 'T' + new Date().toTimeString().split(' ')[0]),
           expected_days: parseInt(formData.expectedDays) || 0,
           amount_paid: parseFloat(formData.amountPaid) || 0,
           amount_due: balanceAmount,
@@ -968,7 +969,7 @@ const Admission = () => {
                 <div className="space-y-2">
                   <label className="text-base font-bold text-slate-700">Admission Date</label>
                   <input
-                    type="datetime-local"
+                    type="date"
                     value={formData.admissionDate}
                     onChange={e => setFormData({ ...formData, admissionDate: e.target.value })}
                     className="w-full px-5 py-4 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-emerald-500 transition-all font-semibold text-lg"
@@ -1333,15 +1334,9 @@ const PatientList = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex flex-col text-slate-600 font-bold">
-                    <div className="flex items-center gap-2 text-base">
-                      <Calendar size={14} />
-                      {new Date(patient.admission_date).toLocaleDateString()}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-400">
-                      <Clock size={12} />
-                      {new Date(patient.admission_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
+                  <div className="flex items-center gap-2 text-base text-slate-600 font-bold">
+                    <Calendar size={14} />
+                    {new Date(patient.admission_date).toLocaleDateString()}
                   </div>
                 </td>
                 <td className="px-6 py-4">
