@@ -160,14 +160,14 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="w-64 bg-slate-900 text-white h-screen fixed left-0 top-0 flex flex-col z-50">
-      <div className="p-6 border-b border-slate-800">
-        <h1 className="text-2xl font-black flex items-center gap-2 tracking-tighter italic">
+    <div className="w-64 bg-slate-900 text-white h-screen fixed left-0 top-0 flex flex-col z-50 border-r border-slate-800">
+      <div className="p-6 border-b border-slate-800 shrink-0">
+        <h1 className="text-2xl font-black flex items-center gap-2 tracking-tighter italic text-white">
           <Activity className="text-emerald-500" />
           MedTrack
         </h1>
       </div>
-      <nav className="flex-1 p-4 space-y-3 overflow-y-auto">
+      <nav className="flex-1 p-4 space-y-3 overflow-y-auto custom-scrollbar">
         {navItems.map((item: any) => (
           <Link
             key={item.path}
@@ -215,7 +215,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pl-64">
+    <div className="min-h-screen bg-slate-50 pl-64 flex flex-col overflow-x-hidden">
       <Sidebar />
 
       {/* Top Header */}
@@ -1267,19 +1267,20 @@ const PatientList = () => {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-100">
-              <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Patient Subject</th>
-              <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Ward / Node</th>
-              <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Diagnostics</th>
-              <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Admission Registry</th>
-              <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Assigned Specialist</th>
-              <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Financial Ledger</th>
-              <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Operations</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[1100px]">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-100">
+                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Patient Subject</th>
+                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Ward / Node</th>
+                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Diagnostics</th>
+                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Admission Registry</th>
+                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Assigned Specialist</th>
+                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Financial Ledger</th>
+                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Operations</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
             {filteredPatients.map(patient => (
               <tr key={patient.id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-6 py-4">
@@ -1374,6 +1375,7 @@ const PatientList = () => {
           </tbody>
         </table>
       </div>
+    </div>
 
       <AnimatePresence>
         {extendingPatient && (
@@ -1840,17 +1842,18 @@ const PatientHistory = () => {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-100">
-              <th className="px-6 py-4 text-sm font-semibold text-slate-600">Patient</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-600">Bed Info</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-600">Dates</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-600">Doctor</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-600">Reason</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[1000px]">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-100">
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Patient</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Bed Info</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Dates</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Doctor</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Reason</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
             {filteredHistory.map((record, idx) => (
               <tr key={idx} className="hover:bg-slate-50 transition-colors">
                 <td className="px-6 py-4">
@@ -1896,6 +1899,7 @@ const PatientHistory = () => {
           </tbody>
         </table>
       </div>
+    </div>
     </div>
   );
 };
